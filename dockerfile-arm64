@@ -1,0 +1,37 @@
+FROM alpine:3.11 as alpine
+## Custom image Details by lucaslorentz https://github.com/lucaslorentz/caddy-docker-proxy#arm-architecture-images
+RUN apk add -U --no-cache ca-certificates
+
+ARG CADDY_VERSION=2.4.0
+FROM caddy:${CADDY_VERSION}-builder AS builder
+
+RUN xcaddy build \
+    --with github.com/lucaslorentz/caddy-docker-proxy/plugin/v2 \
+    --with <additional-plugins>
+
+FROM caddy:${CADDY_VERSION}-alpine
+
+COPY --from=builder /usr/bin/caddy /usr/bin/caddy
+
+CMD ["caddy", "docker-proxy"]
+
+-------
+### Orginal: https://github.com/lucaslorentz/caddy-docker-proxy/blob/master/Dockerfile-alpine-arm32v6
+FROM alpine:3.11 as alpine
+RUN apk add -U --no-cache ca-certificates
+
+# Image starts here
+FROM arm64v8/alpine:latest
+LABEL maintainer "Lucas Lorentz <lucaslorentzlara@hotmail.com>"
+
+EXPOSE 80 443 2019
+ENV XDG_CONFIG_HOME /config
+ENV XDG_DATA_HOME /data
+
+COPY --from=alpine /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+COPY artifacts/binaries/linux/arm32v6/caddy /bin/
+
+ENTRYPOINT ["/bin/caddy"]
+
+CMD ["docker-proxy"]
